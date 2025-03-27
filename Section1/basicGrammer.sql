@@ -59,7 +59,42 @@ BEGIN
 
     dbms_output.put_line('v_name : ' || v_name);
 END;
+-----------------------------------------------------------------------------------------------------------
+DECLARE
+    v_name sample.name%type;
+BEGIN
+    select name into v_name
+    from sample
+    where name = '홍길순';
+    dbms_output.put_line('v_name : ' || v_name);
+END;
+-------------------------------------------------------------------------------------------------------------
+DECLARE
+    r_sample sample%rowtype;
+BEGIN
+    select 
+        name, age, reg_date
+        into r_sample
+    from sample
+    where name = '홍길순';
+    dbms_output.put_line('홍길순 row ' || r_sample.name || ' ' || r_sample.age || ' ' || r_sample.reg_date);
+END;
 
+DECLARE
+    r_sample sample%rowtype;
+BEGIN
+    r_sample.name := '홍길순2';
+    dbms_output.put_line(r_sample.name);
+END;
+
+DECLARE
+    r_sample sample%rowtype;
+BEGIN
+    select * into r_sample
+    from sample
+    where name='홍길동';
+    dbms_output.put_line('result ' || r_sample.name || ' ' || r_sample.age || ' ' || r_sample.reg_date); 
+END;
 
 
 
