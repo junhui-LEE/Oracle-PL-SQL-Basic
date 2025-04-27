@@ -1,0 +1,83 @@
+-- Cart(장바구니)테이블과 주문서테이블에 FK 설정
+ALTER TABLE tmp_ord
+ADD CONSTRAINT fr_tmp_ord_01 FOREIGN KEY(cst_id) REFERENCES cst_info(cst_id);
+
+ALTER TABLE tmp_ord
+ADD CONSTRAINT fr_tmp_ord_02 FOREIGN KEY(mnu_id) REFERENCES menu(mnu_id);
+
+ALTER TABLE real_ord
+ADD CONSTRAINT fr_real_ord_01 FOREIGN KEY(cst_id) REFERENCES cst_info(cst_id);
+
+ALTER TABLE real_ord
+ADD CONSTRAINT fr_real_ord_02 FOREIGN KEY(mnu_id) REFERENCES menu(mnu_id);
+
+
+-- FK(외래키 삭제)
+ALTER TABLE tmp_ord
+DROP CONSTRAINT fr_tmp_ord_01;
+
+ALTER TABLE tmp_ord
+DROP CONSTRAINT fr_tmp_ord_02;
+
+ALTER TABLE real_ord
+DROP CONSTRAINT fr_real_ord_01;
+
+ALTER TABLE real_ord
+DROP CONSTRAINT fr_real_ord_02;
+
+--SELECT * FROM cst_info;
+--SELECT * FROM tmp_ord;
+
+--SHOW AUTOCOMMIT;
+--
+--DELETE FROM tmp_ord
+--WHERE cst_id = 'C001';
+--
+--DELETE FROM cst_info
+--WHERE cst_id = 'C001';
+SELECT * FROM cst_info;
+
+---------------------------------------------------------------------------------------------------------------------------------
+
+“메뉴옵션 테이블”도 먼저 있어야 하는 기준정보이다. 그리고 “메뉴옵션 테이블”의 연관성 이라고 하면 
+“메뉴정보 테이블”과 연관성이 있을 것이다. 그런데 “메뉴정보 테이블”도 기준정보이다. 즉, 두 테이블 
+모두 먼저 있어야 하는 정보인 기준정보(마스터 데이터)이기 때문에 “메뉴옵션 테이블”에 FK를 두지 않았다. 
+FK는 주로 트랜잭션 정보를 의미하는 테이블에 FK를 설정한다. 그리고 더 깊이 생각하여 애플리케이션(java) 입장에서
+생각해 보면 “메뉴정보 테이블”에서 데이터 가져오고 “메뉴옵션 테이블”에서 데이터 가져와서 값을 처리하면 된다.
+아니면 PL/SQL에서 두 테이블의 데이터를 가져와서 처리한 다음에 처리된 데이터가 필요한 테이블에 처리된 데이터를 넣어 주면 된다.
+
+그 다음에 FK를 “트랜잭션 정보”테이블에 걸어보자 ALTER TABLE tmp_ord
+ADD CONSTRAINT fk_tmp_ord FOREIGN KEY(cst_id) REFERENCES cst_info(cst_is);
+이런식으로 걸어주면 된다. 
+그리고 실선표현과 점선표현에 대해서 알아보자 연결된 두 개의 테이블에서 연결된 두 개의 컬럼(키)들이 모두 기본키일 때 실선으로 표시한다.
+연결을 하려면 sub타입 테이블의 외래키와 super타입 테이블의 기본키가 연결이 되는데 sub타입 테이블의 외래키가 
+sub타입의 테이블에서 기본키로서의 역할도 하는 것이다. 그리고 점선 표시는 한쪽만 기본키일 때 점선으로 표시한다. 
+super타입의 테이블과 sub타입의 테이블을 연결할 때는 super타입 테이블에서의 기본키와 sub타입 테이블에서의 
+외래키가 연결이 되는데 점선, 즉, 한쪽만 기본키 라는 것은 super타입 테이블만 기본키 라는 것이고 sub타입 테이블에서 
+기본키로서의 역할(기능)을 하지 않는 외래키와 super타입 테이블의 기본키가 연결되어 있다는 애기이다.
+
+질문 : 처음부터 테이블 설정할 때 FK(외래키)를 만들지 왜 테이블들 전부 만들고 이제와서 
+ERD 만든다고 FK를 새로 만드시나요?
+
+응답 : 처음에 테이블들을 먼저 만든다음에 FK를 나중에 설정한 이유는 FK를 설정하냐 마냐에 대해서는
+고민의 여지가 있기 때문이다. 실무에서는 대용량 프로젝트를 한다 던지 혹은 프로젝트 초반에 개발하는 
+과정이던지 이럴때에는 FK를 설정 안하고 개발을 진행하는 경우도 상당히 많다. 왜냐하면 FK를 설정하면 
+데이터를 마음대로 삭제를 못하기 때문이다. 예를들어서 장바구니 테이블인 tmp_ord에 cst_id의 값으로 
+‘c001’이 있고 이것이 PK이자 FK이다. 그리고 tmp_ord의 super타입 테이블인 고객정보 테이블, 즉,
+cst_info가 있을 것이다. 그리고 cst_info 테이블의 PK는 cst_id이다. 이러한 상황(super-sub가 외래키로 연결되어 있는 상황)에서 
+super타입 테이블인 cst_info 테이블에서 PK인 cst_id가 ‘c001’인 것을 삭제 하려면 에러가 난다(참조 무결성 제약조건이 위배된다).
+super-sub로 테이블간에 외래키로 연결되어 있을 때 서로 연결된 데이터에 대해서 super타입 테이블에서 데이터를 지우면 에러가 나온다.
+super타입 테이블에서 연결된 데이터를 지우기 위해서는 sub타입 테이블에서의 연결된 데이터를 먼저 지워야 한다. 
+당연히 지우고 와야지 라고 생각할 수 있는데, 개발 초기에 혹은 시스템 운영중에 cst_info테이블을 완전히 살제하고 
+재구성 해야할 때가 있다. 그럴 때 FK로 연결되어 있으면 FK가 있는 쪽의 데이터를 먼저 삭제 해야 한다는 번거로움이 있다.
+그래서 FK를 항상 사용하지는 않을 수도 있다.
+
+장바구니 테이블(tmp_ord 테이블)에 가격정보를 넣을 수도 있는데, 쿠팡이나 예스24 같은곳을 잘 보면 한달 뒤에 우유가격이
+떨어진다던지, 책 값이 오른다던지 할 수 있다. 그런데 장바구니 테이블에 가격정보를 넣어버리면 변동된 
+가격이 반영되지 않기 때문에 보통의 시스템에서는 주문서 테이블에 최종적인 가격정보를 넣는다. ㅋㅋㅋ 배민 어플 보면
+아닌 것 같고 DB를 어떻게 설계하느냐에 따라서 충분히 달라질수 있을 것 같은데 우선은 강사님께서 이렇게 말씀하셨다 ㅋㅋㅋ
+
+
+
+
+
