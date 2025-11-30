@@ -1,0 +1,118 @@
+-- * 프로시저 호출
+-- 프로시저 호출하는 방법에는 새로운 시트 열어서 DECLARE문을 쓰고 거기에(BEGIN~END 사이)
+-- 프로시저를 호출하는것이다.
+-- (프로시저는 리턴값이 없기 때문에 변수로 담을 필요 없고 그냥 인자만 넣어주면 된다.
+-- 하지만 call by address 처럼 프로시저 안의 OUT 파라미터를 DECLARE문에서 이용이 가능하다.)
+
+-- * 프로시저 호출시에 프로시저 내의 IN 파라미터에는 NULL이 가능하지만 OUT파라미터에는 
+-- NULL을 넣을 수 없다. 리터럴값이나 변수를 직접 넣어 줘야한다.
+
+DECLARE 
+    R_RTN_CODE VARCHAR2(500);
+    R_RTN_MSG VARCHAR2(500);
+BEGIN
+    P_MAKE_ORDER('C001', R_RTN_CODE, R_RTN_MSG);
+    
+    DBMS_OUTPUT.PUT_LINE('R_RTN_CODE >> ' || R_RTN_CODE);
+    DBMS_OUTPUT.PUT_LINE('R_RTN_MSG >> ' || R_RTN_MSG);
+    
+    IF R_RTN_CODE = '0' THEN
+        COMMIT;
+    ELSE
+        ROLLBACK;
+    END IF
+    ;
+    -- 프로시저가 반환하는 OUT 파라미터를 통해서 실제로 프로시저가 실행되었는지
+    -- 안되었는지 확인이 가능하다. 그리고 프로시저 안에서 COMMIT; 이나 ROLLBACK;을
+    -- 설정할 수도 있고, 프로시저를 호출하는 부분에서 COMMIT; 이나 ROLLBACK;을 
+    -- 설정할 수도 있다.
+END
+;
+
+SELECT *
+FROM REAL_ORD
+WHERE TO_CHAR(REG_DAY, 'YY/MM/DD') = '25/11/30'
+;
+--************************************************************************************
+
+-- * 프로시저를 생성하고 실행하면 '컴파일 되었습니다.'라는 문구를 확인할 수 있는데, 
+-- 그럼 프로시저 한개가 생성이 되어서 ORACLE에 저장이 된 것이다. 
+-- (스키마의 프로시저 폴더에 보면 프로시저가 생긴것을 확인할 수 있다.)
+
+-- * 오라클에서 CREATE OR REPLACE PROCEDURE~~ 이렇게 쿼리로 프로시저를 만들 수도 있지만
+-- SQL DEVELOPER 에서 '프로시저 폴더 -> 새 프로시저'를 선택하면 프로시저를 만들 수 있는
+-- 팝업창이 나온다.
+
+-- * 프로시저를 실행시키면 컴파일이 되지만 SQL DEVELOPER에서 시트의 위에 있는 메뉴에 '톱니바퀴'
+-- 아이콘이 있는데, 이것이 컴파일 하라는 기능이고 톱니바퀴 눌러도 컴파일이 된다.
+-- (컴파일을 하면 오라클에 프로시저가 저장이 된다.)
+
+-- * 운영환경에서 프로시저를 생성하는 것을 못할 수 있는데, 따라서 코드를 오라클에 프로시저를
+-- 통해서 저장 시켜 놓는 것이 아니라 DECLARE문을 메모장에 적어두어서 폴더 같은 곳에 저장해서
+-- 업무를 처리하는 경우도 있다.
+
+CREATE OR REPLACE PROCEDURE P_MAKE_ORDER 
+(
+  P_CST_ID IN VARCHAR2 
+, P_RTN_CODE OUT VARCHAR2 
+, P_RTN_MSG OUT VARCHAR2 
+) AS    
+    R_REAL_ORD REAL_ORD%ROWTYPE;
+    -- 옵션가 변수
+    V_PRICE_SIZE MENU_OPT.OPT_PRICE%TYPE;
+    V_PRICE_ICE MENU_OPT.OPT_PRICE%TYPE;
+BEGIN
+  FOR FC IN(SELECT * FROM TMP_ORD WHERE CST_ID = NVL(P_CST_ID, CST_ID))
+    LOOP
+        DBMS_OUTPUT.PUT_LINE(FC.CST_ID);
+        -- 기준금액
+        SELECT X.MNU_PRICE
+        INTO R_REAL_ORD.PRICE
+        FROM MENU X
+        WHERE X.MNU_ID = FC.MNU_ID
+        ;
+        
+        V_PRICE_SIZE := F_GET_OPT_PRICE(FC.MNU_ID, FC.MNU_SIZE);
+        V_PRICE_ICE := F_GET_OPT_PRICE(FC.MNU_ID, FC.MNU_ICE);
+        
+        R_REAL_ORD.PRICE := R_REAL_ORD.PRICE + V_PRICE_SIZE + V_PRICE_ICE;
+        R_REAL_ORD.TOTAL_PRICE := FC.QTY*R_REAL_ORD.PRICE;
+        
+        R_REAL_ORD.POINT_ADD := F_GET_ADDPOINT(R_REAL_ORD.TOTAL_PRICE);
+        INSERT INTO REAL_ORD(
+            ORD_SEQ,
+            CST_ID,
+            MNU_ID,
+            MNU_SIZE,
+            MNU_ICE,
+            QTY,
+            PRICE,
+            TOTAL_PRICE,
+            POINT_USE,
+            POINT_ADD
+        )VALUES(
+            1,  -- SQ_REAL_ORD.NEXTVAL,
+            FC.CST_ID,
+            FC.MNU_ID,
+            FC.MNU_SIZE,
+            FC.MNU_ICE,
+            FC.QTY,
+            R_REAL_ORD.PRICE,
+            R_REAL_ORD.TOTAL_PRICE,
+            FC.POINT_USE,
+            R_REAL_ORD.POINT_ADD
+        )
+        ;
+        UPDATE CST_INFO
+        SET
+            POINT = POINT+R_REAL_ORD.POINT_ADD
+        WHERE CST_ID = FC.CST_ID
+        ;
+    END LOOP
+    ;
+    P_RTN_CODE := '0';
+    P_RTN_MSG := 'OK';
+    
+END P_MAKE_ORDER;
+
+
