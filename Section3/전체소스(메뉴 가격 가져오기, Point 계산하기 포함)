@@ -1,0 +1,66 @@
+DECLARE
+    V_CST_ID CST_INFO.CST_ID%TYPE := 'C001';
+    V_MNU_ID TMP_ORD.MNU_ID%TYPE;
+    V_MNU_SIZE TMP_ORD.MNU_SIZE%TYPE;
+    R_REAL_ORD REAL_ORD%ROWTYPE;
+    
+    -- 옵션가 변수
+    V_PRICE_SIZE MENU_OPT.OPT_PRICE%TYPE;
+    V_PRICE_ICE MENU_OPT.OPT_PRICE%TYPE;
+BEGIN
+    FOR FC IN(SELECT * FROM TMP_ORD WHERE CST_ID = V_CST_ID)
+    LOOP
+        V_MNU_SIZE := FC.MNU_SIZE;
+        -- 기준금액을 가져온다.
+        SELECT X.MNU_PRICE
+        INTO R_REAL_ORD.PRICE
+        FROM MENU X
+        WHERE X.MNU_ID = FC.MNU_ID
+        ;
+        -- 사이즈 옵션가격을 가져온다.
+        V_PRICE_SIZE := F_GET_OPT_PRICE(FC.MNU_ID, FC.MNU_SIZE);
+        -- 아이스 옵션가격을 가져온다.
+        V_PRICE_ICE := F_GET_OPT_PRICE(FC.MNU_ID, FC.MNU_ICE);
+        -- *************************************************************
+        -- 예) M사이즈의 아이스 카퓨티노의 가격(1개 가격)
+        R_REAL_ORD.PRICE := R_REAL_ORD.PRICE + V_PRICE_SIZE + V_PRICE_ICE;
+        -- 주문단가
+        R_REAL_ORD.TOTAL_PRICE := FC.QTY*R_REAL_ORD.PRICE;
+        -- *************************************************************
+        -- 포인트를 추가한다. 10% 추가(고객이 받는 포인트)
+        R_REAL_ORD.POINT_ADD := F_GET_ADDPOINT(R_REAL_ORD.TOTAL_PRICE);
+        -- *************************************************************
+        INSERT INTO REAL_ORD(
+            ORD_SEQ,
+            CST_ID,
+            MNU_ID,
+            MNU_SIZE,
+            MNU_ICE,
+            QTY,
+            PRICE,
+            TOTAL_PRICE,
+            POINT_USE,
+            POINT_ADD
+        )VALUES(
+            1,  -- SQ_REAL_ORD.NEXTVAL,
+            FC.CST_ID,
+            FC.MNU_ID,
+            FC.MNU_SIZE,
+            FC.MNU_ICE,
+            FC.QTY,
+            R_REAL_ORD.PRICE,
+            R_REAL_ORD.TOTAL_PRICE,
+            FC.POINT_USE,
+            R_REAL_ORD.POINT_ADD
+        )
+        ;
+        -- ****************************************************
+        UPDATE CST_INFO
+        SET
+            POINT = POINT+R_REAL_ORD.POINT_ADD
+        WHERE CST_ID = FC.CST_ID
+        ;
+    END LOOP
+    ;
+END
+;
