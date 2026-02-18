@@ -1,0 +1,16 @@
+DECLARE
+    R_RTN_CODE VARCHAR2(500);
+    R_RTN_MSG VARCHAR2(500);
+BEGIN
+    P_ORDERS.PSP_MAKE_ORDER('C001', R_RTN_CODE, R_RTN_MSG, TEST_IN, TEST_OUT);
+    dbms_output.put_line('R_RTN_CODE -> ' || R_RTN_CODE);
+    dbms_output.put_line('R_RTN_MSG -> ' || R_RTN_MSG);
+    IF TEST_OUT = 5555 THEN
+        COMMIT;
+    ELSE
+        ROLLBACK;
+    END IF
+    ;
+END
+;
+
