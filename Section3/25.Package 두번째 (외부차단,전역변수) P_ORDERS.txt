@@ -1,0 +1,22 @@
+create or replace NONEDITIONABLE PACKAGE P_ORDERS AS 
+
+  /* TODO enter package declarations (types, exceptions, methods etc) here */ 
+  V_P_ORDERS VARCHAR2(500) := 'P_ORDERS 패키지는 주문과 관련된 패키지 입니다..';
+ 
+    /* 포인트 가져오는 펑션 */
+--    FUNCTION PF_GET_ADDPOINT
+--    (
+--        P_PRICE IN NUMBER
+--    )RETURN NUMBER
+--    ;
+    
+    /* 주문서 만드는 프로시저 */
+    PROCEDURE PSP_MAKE_ORDER
+    (
+        P_CST_ID IN VARCHAR2
+       , R_RTN_CODE OUT VARCHAR2 
+       , R_RTN_MSG OUT VARCHAR2 
+    )
+    ;
+
+END P_ORDERS;
