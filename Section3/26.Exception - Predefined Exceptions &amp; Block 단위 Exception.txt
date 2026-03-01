@@ -1,0 +1,30 @@
+DECLARE
+ V_NAME CST_INFO.NAME%TYPE;
+ V_MNU_NM MENU.MNU_NM%TYPE;
+BEGIN
+ --메뉴명가져오기
+ SELECT MNU_NM
+ INTO V_MNU_NM
+ FROM MENU
+ WHERE MNU_ID='M001'
+ ;
+ --고객명가져오기
+ SELECT NAME
+ INTO V_NAME
+ FROM CST_INFO
+ WHERE CST_ID='C001'
+ ;
+ DBMS_OUTPUT.PUT_LINE('이름: '||V_NAME);
+ DBMS_OUTPUT.PUT_LINE('메뉴: '||V_MNU_NM);
+ EXCEPTION 
+    WHEN NO_DATA_FOUND THEN
+        DBMS_OUTPUT.PUT_LINE('데이터를 찾지 못했습니다.');
+        INSERT INTO LOGS(name, memo) VALUES('익명PL/SQL', '데이터를 찾지 못하는 오류 발생');
+    WHEN TOO_MANY_ROWS THEN
+        DBMS_OUTPUT.PUT_LINE('데이터가 2개 이상입니다.');
+        INSERT INTO LOGS(name, memo) VALUES('익명PL/SQL', '2개 이상의 데이터 추출 오류');
+    WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('오류발생');
+        INSERT INTO LOGS(name, memo) VALUES('익명PL/SQL', '알수없는 오류가 발생했습니다.');
+END;
+/
