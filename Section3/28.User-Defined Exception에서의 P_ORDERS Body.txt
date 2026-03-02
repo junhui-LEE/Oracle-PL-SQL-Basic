@@ -1,0 +1,113 @@
+create or replace NONEDITIONABLE PACKAGE BODY P_ORDERS AS
+  
+  FUNCTION PF_GET_ADDPOINT(
+    P_PRICE IN NUMBER 
+  ) RETURN NUMBER AS
+  -- 적립포인트 
+  V_POINT CST_INFO.POINT%TYPE;
+  BEGIN
+    V_POINT := ROUND(P_PRICE * 0.1);
+    RETURN V_POINT;
+  EXCEPTION 
+    WHEN OTHERS THEN
+      RETURN 0;
+  END PF_GET_ADDPOINT;
+  
+  /* 미성년자는 맥주 안됨 */
+  FUNCTION PF_GET_NOBEER(
+    P_CST_ID IN VARCHAR2,
+    P_MNU_ID IN VARCHAR2
+  )RETURN VARCHAR2
+  AS
+    R_RTNMSG VARCHAR2(10) := 'OK';   -- OK, NO
+    V_BIRTH CST_INFO.BIRTH%TYPE;
+  BEGIN
+    -- 미성년자 체크 여부
+    SELECT BIRTH
+    INTO V_BIRTH
+    FROM CST_INFO
+    WHERE CST_ID = P_CST_ID;
+    
+    -- 미성년자, 메뉴가 맥주인것 체크
+    IF TO_NUMBER(TO_CHAR(SYSDATE, 'YYYY'))-TO_NUMBER(V_BIRTH) < 19  -- 미성년자 이면서
+        AND P_MNU_ID IN('M004', 'M005')                             -- 맥주를 구매하면
+    THEN
+        R_RTNMSG := 'NO';
+    END IF;
+    
+    RETURN R_RTNMSG;
+    
+  EXCEPTION 
+    WHEN OTHERS THEN
+        RETURN R_RTNMSG;
+    
+  END PF_GET_NOBEER
+  ;
+  
+  PROCEDURE PSP_MAKE_ORDER (
+      P_CST_ID IN VARCHAR2 
+    , R_RTN_CODE OUT VARCHAR2 
+    , R_RTN_MSG OUT VARCHAR2 
+  ) AS
+    -- 변수선언, 서브프로그램
+    -- REAL_ORD 테이블 컬럼값을 변수로 사용
+    R_REAL_ORD REAL_ORD%ROWTYPE;
+    -- 옵션가 변수 
+    V_PRICE_SIZE MENU_OPT.OPT_PRICE%TYPE;
+    V_PRICE_ICE  MENU_OPT.OPT_PRICE%TYPE;
+  BEGIN
+    -- 실행구문
+    -- 1. 장바구니의자료를가져온다.
+    -- 2. 장바구니의갯수만큼 LOOP 진행을한다.
+    FOR FC IN (SELECT * FROM TMP_ORD WHERE CST_ID = NVL(P_CST_ID, CST_ID))    
+    LOOP    
+      DBMS_OUTPUT.PUT_LINE(FC.CST_ID);
+      -- 3. 주문서에필요한기본정보를가져온다.
+      -- 3.1 맥주일경우미성년자체크를한다.
+        IF P_ORDERS.PF_GET_NOBEER(FC.CST_ID, FC.MNU_ID) = 'NO' 
+            THEN
+                RAISE_APPLICATION_ERROR(-20055, '맥주는 안됨');
+        END IF;
+      -- 4. 옵션가를가져온다.
+      -- 5. 주문금액을계산한다. (수량*(기준단가+옵션가))
+      -- 기준금액
+      SELECT X.MNU_PRICE
+        INTO R_REAL_ORD.PRICE
+        FROM MENU X 
+       WHERE X.MNU_ID = FC.MNU_ID;
+      -- 사이즈 옵션 가격
+      V_PRICE_SIZE := F_GET_OPT_PRICE(FC.MNU_ID, FC.MNU_SIZE);
+      -- 아이스 옵션가격
+      V_PRICE_ICE := F_GET_OPT_PRICE(FC.MNU_ID, FC.MNU_ICE);
+      -- 주문단가 
+      R_REAL_ORD.PRICE := R_REAL_ORD.PRICE + V_PRICE_SIZE + V_PRICE_ICE;
+      R_REAL_ORD.TOTAL_PRICE := FC.QTY * R_REAL_ORD.PRICE;
+      -- 5. 포인트추가를한다. 10% 추가         
+      R_REAL_ORD.POINT_ADD := P_ORDERS.PF_GET_ADDPOINT(R_REAL_ORD.TOTAL_PRICE);
+      -- 6. 주문서를생성한다.
+      INSERT INTO REAL_ORD (
+          ORD_SEQ, CST_ID, MNU_ID, MNU_SIZE, MNU_ICE, 
+          QTY, PRICE, TOTAL_PRICE, POINT_USE, POINT_ADD
+      )
+      VALUES (
+          1, FC.CST_ID, FC.MNU_ID, FC.MNU_SIZE, FC.MNU_ICE, 
+          FC.QTY, R_REAL_ORD.PRICE, R_REAL_ORD.TOTAL_PRICE, 
+          FC.POINT_USE, R_REAL_ORD.POINT_ADD
+      );       
+      -- 7. 개인정보에포인트를넣어준다.
+      UPDATE CST_INFO
+         SET POINT = POINT + R_REAL_ORD.POINT_ADD
+       WHERE CST_ID = FC.CST_ID;
+    END LOOP;    
+    DBMS_OUTPUT.PUT_LINE('정상실행: NO EXCEPTION');
+    R_RTN_CODE := TO_CHAR(SQLCODE);
+    R_RTN_MSG  := SQLERRM;   
+    
+    EXCEPTION WHEN OTHERS THEN
+        DBMS_OUTPUT.PUT_LINE('예외발생: EXCEPTION');
+        R_RTN_CODE := TO_CHAR(SQLCODE);
+        R_RTN_MSG := SQLERRM;
+    
+  END PSP_MAKE_ORDER;
+
+END P_ORDERS;
