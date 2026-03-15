@@ -1,0 +1,92 @@
+create or replace NONEDITIONABLE PACKAGE BODY P_SECTION6 AS
+    
+    -- SECTION 6-1
+    FUNCTION PF_GET_NAME1
+    (
+        P_CST_ID IN CST_INFO.CST_ID%TYPE
+    ) RETURN VARCHAR2
+    AS
+        V_NAME CST_INFO.NAME%TYPE;
+    BEGIN
+        SELECT NAME
+        INTO V_NAME
+        FROM CST_INFO
+        WHERE CST_ID = P_CST_ID
+        ;
+        RETURN V_NAME;
+    END PF_GET_NAME1;
+
+    FUNCTION PF_GET_NAME2
+    (
+        P_CST_INFO CST_INFO%ROWTYPE
+    )RETURN CST_INFO%ROWTYPE
+    AS
+        R_CST_INFO CST_INFO%ROWTYPE;
+    BEGIN
+        SELECT * 
+        INTO R_CST_INFO
+        FROM CST_INFO
+        WHERE CST_ID = P_CST_INFO.CST_ID
+        ;
+        RETURN R_CST_INFO;
+    END PF_GET_NAME2;
+    
+    PROCEDURE PSP_GET_NAME1
+    (
+        P_CST_ID IN CST_INFO.CST_ID%TYPE,
+        V_NAME OUT CST_INFO.NAME%TYPE
+    )
+    AS
+    BEGIN
+        SELECT NAME
+        INTO V_NAME
+        FROM CST_INFO
+        WHERE CST_ID = P_CST_ID
+        ;
+    END PSP_GET_NAME1;
+
+    PROCEDURE PSP_GET_NAME2
+    (
+        P_CST_INFO IN CST_INFO%ROWTYPE,
+        R_CST_INFO OUT CST_INFO%ROWTYPE
+    )
+    AS
+    BEGIN
+        SELECT * 
+        INTO R_CST_INFO
+        FROM CST_INFO
+        WHERE CST_ID = P_CST_INFO.CST_ID
+        ;
+    END PSP_GET_NAME2;
+    
+    PROCEDURE PSP_SECTION6_1 AS 
+        -- 일반변수 
+         P_CST_ID CST_INFO.CST_ID%TYPE;
+         V_NAME CST_INFO.NAME%TYPE;
+        -- ROWTYPE 변수 
+         P_CST_INFO CST_INFO%ROWTYPE;
+         R_CST_INFO CST_INFO%ROWTYPE;
+    BEGIN
+        P_CST_ID := 'C001';
+        -- 일반변수 이용  (FUNCTION)
+        V_NAME := P_SECTION6.PF_GET_NAME1(P_CST_ID);
+        DBMS_OUTPUT.PUT_LINE('V_NAME > ' || V_NAME);
+        -- ROWTYPE 이용  (FUNCTION)
+        P_CST_INFO.CST_ID := 'C002';
+        R_CST_INFO := P_SECTION6.PF_GET_NAME2(P_CST_INFO);
+        DBMS_OUTPUT.PUT_LINE('R_CST_INFO.NAME > ' || R_CST_INFO.NAME);
+        P_CST_ID := 'C003';
+        
+        -- DBMS_OUTPUT.PUT_LINE('');
+        DBMS_OUTPUT.PUT_LINE(chr(13) || chr(10));
+        
+        -- 일반변수 이용  (PROCEDURE)
+        P_SECTION6.PSP_GET_NAME1(P_CST_ID, V_NAME);
+        DBMS_OUTPUT.PUT_LINE('V_NAME > ' || V_NAME);
+        -- ROWTYPE 이용  (PROCEDURE)
+        P_CST_INFO.CST_ID := 'C004';
+        P_SECTION6.PSP_GET_NAME2(P_CST_INFO, R_CST_INFO);
+        DBMS_OUTPUT.PUT_LINE('R_CST_INFO.NAME > ' || R_CST_INFO.NAME);
+    END PSP_SECTION6_1;
+    
+END P_SECTION6;

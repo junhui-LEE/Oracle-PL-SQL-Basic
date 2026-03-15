@@ -1,0 +1,36 @@
+create or replace NONEDITIONABLE FUNCTION F_GET_NAME1
+(
+    P_CST_ID IN CST_INFO.CST_ID%TYPE
+) RETURN VARCHAR2
+AS
+    V_NAME CST_INFO.NAME%TYPE;
+BEGIN
+    SELECT NAME
+    INTO V_NAME
+    FROM CST_INFO
+    WHERE CST_ID = P_CST_ID
+    ;
+    RETURN V_NAME;
+END F_GET_NAME1
+;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

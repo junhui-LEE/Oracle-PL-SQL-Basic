@@ -1,0 +1,6 @@
+create or replace NONEDITIONABLE PACKAGE P_SECTION6 AS 
+
+  /* TODO enter package declarations (types, exceptions, methods etc) here */ 
+    PROCEDURE PSP_SECTION6_1; 
+
+END P_SECTION6;
