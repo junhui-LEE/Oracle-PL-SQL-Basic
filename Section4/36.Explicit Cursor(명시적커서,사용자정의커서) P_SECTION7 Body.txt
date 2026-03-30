@@ -1,0 +1,119 @@
+create or replace NONEDITIONABLE PACKAGE BODY P_SECTION7 AS
+
+    /* 고객ID를 파라미터로 받고 레코드 타입의 커서를 반환하는 함수 */
+     FUNCTION PF_SECTION7_CURSOR(
+      P_CST_ID IN CST_INFO.CST_ID%TYPE
+    ) RETURN P_COMM.REC_CUR
+    AS
+      REC_CUR P_COMM.REC_CUR;
+    BEGIN
+      /* STRONG TYPE */
+      OPEN REC_CUR
+        FOR SELECT NAME   AS V_NAME,
+                   BIRTH  AS V_BIRTH,
+                   MOBILE AS V_MOBILE,
+                   '커피' AS V_FAVORITE
+              FROM CST_INFO;
+    --  CLOSE REC_CUR;
+      RETURN REC_CUR;
+    END PF_SECTION7_CURSOR;
+    
+    /* 커서 파라미터를 받고 커서를 초기화 하는 프로시저 */
+    PROCEDURE PSP_SECTION7_CURSOR
+    (
+        P_CST_ID IN CST_INFO.CST_ID%TYPE,
+        C_CST OUT P_COMM.CST_CUR_TYP
+    )
+    AS
+    BEGIN
+        OPEN C_CST 
+            FOR SELECT * FROM CST_INFO;
+    END PSP_SECTION7_CURSOR;
+
+     /* WEEK TYPE의 커서를 반환하는 프로시저 */
+     PROCEDURE PSP_SECTION7_CURSOR2(
+       P_ORD_NO IN REAL_ORD.ORD_NO%TYPE,
+       RTN_CUR OUT P_COMM.RTN_CUR
+     )
+     AS
+     BEGIN
+       /* WEEK TYPE */
+       OPEN RTN_CUR
+         FOR SELECT A.ORD_NO,
+                    A.CST_ID,
+                    C.NAME,
+                    A.MNU_ID,
+                    (
+                        SELECT X.MNU_NM 
+                        FROM MENU X 
+                        WHERE X.MNU_ID = A.MNU_ID
+                    ) AS MNU_NM,
+                    A.PRICE,
+                    A.TOTAL_PRICE,
+                    A.REG_DAY
+              FROM REAL_ORD A, CST_INFO C
+             WHERE A.CST_ID = C.CST_ID
+               AND A.ORD_NO = P_ORD_NO;
+    
+     END PSP_SECTION7_CURSOR2;
+
+    PROCEDURE PSP_SECTION7_CURSOR
+    AS
+        -- 변수 선언
+        P_CST_ID CST_INFO.CST_ID%TYPE; -- 고객ID
+        C_CST P_COMM.CST_CUR_TYP;      -- 커서변수 -- STRONG TYPE -- CST_INFO테이블의 ROWTYPE
+        R_CST CST_INFO%ROWTYPE;        -- ROWTYPE 변수 -- CST_INFO테이블의 ROWTYPE 변수 
+        
+        REC_CUR P_COMM.REC_CUR;        -- 커서변수 -- STRONG TYPE -- 레코드 타입을 사용,반환하는 커서 타입 
+        REC_CST_INFO P_COMM.CST_INFO_REC_TYP;  -- 레코드 변수 -- 커서변수 아니다. 바로 위와 동일한 레코드를 사용하지만 
+        -- 위에는 커서 변수이고 이것은 레코드 변수이다. 레코드 타입은 CST_INFO_REC_TYP 이다. 
+        
+        -- WEAK TYPE CURSOR
+        RTN_CUR P_COMM.RTN_CUR;
+        R_REAL_ORD REAL_ORD%ROWTYPE;
+        R_MENU MENU%ROWTYPE;
+    BEGIN
+        /* STRONG, RECORD 타입 커서 RETURN */
+        REC_CUR := PF_SECTION7_CURSOR(P_CST_ID);
+        LOOP
+            FETCH REC_CUR INTO REC_CST_INFO;
+            EXIT WHEN REC_CUR%NOTFOUND;
+            DBMS_OUTPUT.PUT_LINE('REC_CST_INFO.V_NAME: '||REC_CST_INFO.V_NAME);
+            DBMS_OUTPUT.PUT_LINE('REC_CST_INFO.V_MOBILE: '||REC_CST_INFO.V_MOBILE);
+        END LOOP;
+        CLOSE REC_CUR;
+        DBMS_OUTPUT.PUT_LINE(CHR(10)||CHR(13));
+        
+        /* STRONG TYPE 변수 RETURN */
+        PSP_SECTION7_CURSOR(P_CST_ID, C_CST);
+        LOOP
+            FETCH C_CST INTO R_CST;
+            EXIT WHEN C_CST%NOTFOUND;
+            DBMS_OUTPUT.PUT_LINE('R_CST.NAME: '||R_CST.NAME);
+        END LOOP;
+        CLOSE C_CST;
+        
+        DBMS_OUTPUT.PUT_LINE('----------------------------------------------');
+        
+        /* WEAK TYPE 변수 RETURN, 커서의 특성을 이용하여 유연하게 사용가능 */
+        R_REAL_ORD.ORD_NO := 1000320;
+        PSP_SECTION7_CURSOR2(R_REAL_ORD.ORD_NO, RTN_CUR);
+--        LOOP
+            FETCH RTN_CUR
+            INTO R_REAL_ORD.ORD_NO,
+                 R_REAL_ORD.CST_ID,
+                 R_CST.NAME,
+                 R_REAL_ORD.MNU_ID,
+                 R_MENU.MNU_NM,
+                 R_REAL_ORD.PRICE,
+                 R_REAL_ORD.TOTAL_PRICE,
+                 R_REAL_ORD.REG_DAY; 
+--            EXIT WHEN RTN_CUR%NOTFOUND;  
+            DBMS_OUTPUT.PUT_LINE('R_REAL_ORD.ORD_NO: ' || R_REAL_ORD.ORD_NO);
+            DBMS_OUTPUT.PUT_LINE('R_CST.NAME: ' || R_CST.NAME);
+            DBMS_OUTPUT.PUT_LINE('R_MENU.MNU_NM: ' || R_MENU.MNU_NM);
+--        END LOOP;
+        CLOSE RTN_CUR;
+    END PSP_SECTION7_CURSOR;
+    
+END P_SECTION7;
