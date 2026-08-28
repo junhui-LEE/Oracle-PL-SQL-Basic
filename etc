@@ -1,0 +1,85 @@
+--CREATE TABLE EMPS_IT AS SELECT * FROM EMPLOYEES WHERE 1=2;
+--
+--INSERT INTO EMPS_IT (EMPLOYEE_ID, FIRST_NAME, LAST_NAME, EMAIL, HIRE_DATE, JOB_ID) 
+--VALUES(105, 'David', 'Kim', 'DAVIDKIM', '06/03/04', 'IT_PROG');
+--
+--SELECT * FROM EMPS_IT;
+--
+--MERGE INTO EMPS_IT A
+--    USING (SELECT * FROM EMPLOYEES WHERE JOB_ID='IT_PROG') B
+--    ON (A.EMPLOYEE_ID=B.EMPLOYEE_ID)
+--WHEN MATCHED THEN
+--    UPDATE SET
+--        A.PHONE_NUMBER = B.PHONE_NUMBER, A.HIRE_DATE = B.HIRE_DATE, A.JOB_ID = B.JOB_ID, A.SALARY = B.SALARY, 
+--        A.COMMISSION_PCT = B.COMMISSION_PCT, A.MANAGER_ID = B.MANAGER_ID, A.DEPARTMENT_ID = B.DEPARTMENT_ID
+--WHEN NOT MATCHED THEN
+--    INSERT VALUES
+--        (B.EMPLOYEE_ID, B.FIRST_NAME, B.LAST_NAME, B.EMAIL, B.PHONE_NUMBER, B.HIRE_DATE, B.JOB_ID, B.SALARY,
+--         B.COMMISSION_PCT, B.MANAGER_ID, B.DEPARTMENT_ID);
+----ROLLBACK;
+--SELECT * FROM EMPS_IT;
+
+CREATE TABLE EMPS_IT AS SELECT * FROM EMPLOYEES WHERE 1=2
+;
+
+SELECT * FROM employees
+;
+
+INSERT INTO emps_it(employee_id, first_name, last_name, email, hire_date, job_id)
+VALUES (105, 'David', 'Kim', 'DAVIDKIM', '06/03/04', 'IT_PROG')
+;
+
+SELECT * FROM emps_it
+;
+
+SELECT * 
+FROM employees 
+WHERE 1=1
+-- AND employee_id = 105 
+AND job_id = 'IT_PROG'
+;
+
+MERGE INTO emps_it A
+USING(SELECT * FROM employees WHERE job_id = 'IT_PROG') B
+ON(A.employee_id = B.employee_id)
+WHEN MATCHED THEN
+UPDATE SET
+A.phone_number = B.phone_number,
+A.hire_date = B.hire_date,
+A.job_id = B.job_id,
+A.salary = B.salary,
+A.commission_pct = B.commission_pct,
+A.manager_id = B.manager_id,
+A.department_id = B.department_id
+WHEN NOT MATCHED THEN
+INSERT 
+VALUES
+(
+B.employee_id, B.first_name, B.last_name, B.email, B.phone_number, B.hire_date,
+B.job_id, B.salary, B.commission_pct, B.manager_id, B.department_id)
+;
+
+SELECT *
+FROM emps_it
+;
+ROLLBACK;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
